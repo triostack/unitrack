@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Manager - QR Attendance System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Login Section -->
+        <div id="loginSection" class="section active">
+            <div class="login-box">
+                <h1>📚 Attendance Manager</h1>
+                <div class="role-selector">
+                    <button class="role-btn active" onclick="selectRole('admin')">👨‍🏫 Admin/Teacher</button>
+                    <button class="role-btn" onclick="selectRole('student')">👨‍🎓 Student</button>
+                </div>
+
+                <div id="adminLoginDiv" class="role-form active">
+                    <h2>Teacher Login</h2>
+                    <input type="email" id="adminEmail" placeholder="Email" />
+                    <input type="password" id="adminPassword" placeholder="Password" />
+                    <button onclick="loginAdmin()">Login</button>
+                    <p class="link" onclick="toggleSignup('admin')">Don't have account? Sign up</p>
+                </div>
+
+                <div id="studentLoginDiv" class="role-form">
+                    <h2>Student Login</h2>
+                    <input type="text" id="studentRoll" placeholder="Roll Number" />
+                    <input type="password" id="studentPassword" placeholder="Password" />
+                    <button onclick="loginStudent()">Login</button>
+                    <p class="link" onclick="toggleSignup('student')">Don't have account? Sign up</p>
+                </div>
+
+                <div id="signupDiv" class="role-form hidden">
+                    <h2 id="signupTitle">Sign Up</h2>
+                    <input type="text" id="signupName" placeholder="Full Name" />
+                    <input type="email" id="signupEmail" placeholder="Email" />
+                    <input type="password" id="signupPassword" placeholder="Password" />
+                    <input type="text" id="signupRoll" placeholder="Roll Number (Students Only)" class="hidden" />
+                    <button onclick="signup()">Sign Up</button>
+                    <p class="link" onclick="toggleSignup('back')">Back to Login</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Panel -->
+        <div id="adminPanel" class="section">
+            <div class="header">
+                <h1>👨‍🏫 Admin Dashboard</h1>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+
+            <nav class="admin-nav">
+                <button class="nav-btn active" onclick="showAdminView('dashboard')">📊 Dashboard</button>
+                <button class="nav-btn" onclick="showAdminView('students')">👥 Students</button>
+                <button class="nav-btn" onclick="showAdminView('attendance')">✅ Take Attendance</button>
+                <button class="nav-btn" onclick="showAdminView('qr')">📱 QR Attendance</button>
+                <button class="nav-btn" onclick="showAdminView('leaves')">📋 Leave Requests</button>
+                <button class="nav-btn" onclick="showAdminView('reports')">📈 Reports</button>
+            </nav>
+
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="admin-view active">
+                <h2>📊 Dashboard</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Students</h3>
+                        <p id="totalStudents">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Present Today</h3>
+                        <p id="presentToday">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Low Attendance (<75%)</h3>
+                        <p id="lowAttendance">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Management View -->
+            <div id="studentsView" class="admin-view hidden">
+                <h2>👥 Manage Students</h2>
+                <div class="form-group">
+                    <input type="text" id="studentName" placeholder="Student Name" />
+                    <input type="text" id="studentRollInput" placeholder="Roll Number" />
+                    <input type="email" id="studentEmailInput" placeholder="Email" />
+                    <input type="password" id="studentPassInput" placeholder="Password" />
+                    <button onclick="addStudent()">Add Student</button>
+                </div>
+                <div id="studentsList" class="students-list"></div>
+            </div>
+
+            <!-- Attendance View -->
+            <div id="attendanceView" class="admin-view hidden">
+                <h2>✅ Take Attendance</h2>
+                <div class="form-group">
+                    <select id="classSelect">
+                        <option>Select Class</option>
+                        <option>Class 10A</option>
+                        <option>Class 10B</option>
+                        <option>Class 11A</option>
+                        <option>Class 12A</option>
+                    </select>
+                    <input type="date" id="attendanceDate" />
+                    <select id="periodSelect">
+                        <option>Select Period</option>
+                        <option>Period 1</option>
+                        <option>Period 2</option>
+                        <option>Period 3</option>
+                        <option>Period 4</option>
+                    </select>
+                    <button onclick="loadAttendanceForm()">Load Students</button>
+                </div>
+                <div id="attendanceForm" class="attendance-form"></div>
+                <button onclick="saveAttendance()" class="submit-btn hidden" id="saveAttendanceBtn">Save Attendance</button>
+            </div>
+
+            <!-- QR Attendance View -->
+            <div id="qrView" class="admin-view hidden">
+                <h2>📱 QR Attendance</h2>
+                <div class="form-group">
+                    <select id="qrClassSelect">
+                        <option>Select Class</option>
+                        <option>Class 10A</option>
+                        <option>Class 10B</option>
+                        <option>Class 11A</option>
+                        <option>Class 12A</option>
+                    </select>
+                    <input type="date" id="qrDate" />
+                    <select id="qrPeriodSelect">
+                        <option>Select Period</option>
+                        <option>Period 1</option>
+                        <option>Period 2</option>
+                        <option>Period 3</option>
+                        <option>Period 4</option>
+                    </select>
+                    <button onclick="generateQR()">Generate QR Code</button>
+                </div>
+                <div id="qrContainer" class="qr-container hidden">
+                    <h3>QR Code (Expires in <span id="qrTimer">120</span>s)</h3>
+                    <div id="qrCode" class="qr-code"></div>
+                    <p id="tokenDisplay"></p>
+                    <button onclick="closeQR()" class="danger-btn">Close QR</button>
+                </div>
+                <div id="qrSessionInfo" class="session-info hidden">
+                    <h3>Active Session</h3>
+                    <p id="qrSessionDetails"></p>
+                    <div id="qrScanList"></div>
+                </div>
+            </div>
+
+            <!-- Leave Requests View -->
+            <div id="leavesView" class="admin-view hidden">
+                <h2>📋 Leave Requests</h2>
+                <div id="leaveRequestsList" class="leaves-list"></div>
+            </div>
+
+            <!-- Reports View -->
+            <div id="reportsView" class="admin-view hidden">
+                <h2>📈 Reports</h2>
+                <div class="form-group">
+                    <select id="reportMonth">
+                        <option value="">Select Month</option>
+                    </select>
+                    <button onclick="generateReport()">Generate Report</button>
+                    <button onclick="exportToCSV()">📥 Export CSV</button>
+                    <button onclick="printReport()">🖨️ Print</button>
+                </div>
+                <div id="reportContent" class="report-content"></div>
+            </div>
+        </div>
+
+        <!-- Student Panel -->
+        <div id="studentPanel" class="section">
+            <div class="header">
+                <h1>👨‍🎓 Student Dashboard</h1>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+
+            <nav class="student-nav">
+                <button class="nav-btn active" onclick="showStudentView('overview')">📊 Overview</button>
+                <button class="nav-btn" onclick="showStudentView('calendar')">📅 Calendar</button>
+                <button class="nav-btn" onclick="showStudentView('qrscan')">📱 Scan QR</button>
+                <button class="nav-btn" onclick="showStudentView('leaves')">📋 Leave Request</button>
+            </nav>
+
+            <!-- Overview View -->
+            <div id="overviewView" class="student-view active">
+                <h2>📊 Your Attendance</h2>
+                <div class="attendance-stats">
+                    <div class="stat-box">
+                        <h3>Attendance %</h3>
+                        <p id="attendancePercent">0%</p>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Total Classes</h3>
+                        <p id="totalClasses">0</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Present</h3>
+                        <p id="presentCount">0</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>Absent</h3>
+                        <p id="absentCount">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar View -->
+            <div id="calendarView" class="student-view hidden">
+                <h2>📅 Attendance Calendar</h2>
+                <div id="calendar" class="calendar"></div>
+            </div>
+
+            <!-- QR Scan View -->
+            <div id="qrscanView" class="student-view hidden">
+                <h2>📱 Scan QR Code</h2>
+                <div class="qr-scanner-container">
+                    <video id="qrVideo" class="qr-video hidden"></video>
+                    <div id="qrScannerFallback" class="qr-fallback">
+                        <input type="text" id="qrManualInput" placeholder="Paste QR Token here (for testing)" />
+                        <button onclick="scanQRManual()">Submit Token</button>
+                    </div>
+                    <button id="startCameraBtn" onclick="startCamera()" class="primary-btn">📷 Start Camera</button>
+                </div>
+                <div id="scanResult" class="scan-result hidden"></div>
+            </div>
+
+            <!-- Leave Request View -->
+            <div id="leavesView_student" class="student-view hidden">
+                <h2>📋 Request Leave</h2>
+                <div class="form-group">
+                    <input type="date" id="leaveStartDate" />
+                    <input type="date" id="leaveEndDate" />
+                    <textarea id="leaveReason" placeholder="Reason for leave"></textarea>
+                    <select id="leaveType">
+                        <option>Medical</option>
+                        <option>Personal</option>
+                        <option>Family</option>
+                        <option>Other</option>
+                    </select>
+                    <button onclick="submitLeaveRequest()">Submit Request</button>
+                </div>
+                <div id="leaveHistory" class="leave-history"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+
+    <!-- QR Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+
+    <!-- App Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
