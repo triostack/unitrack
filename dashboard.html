@@ -95,6 +95,20 @@
 
   <script src="js/utils.js"></script>
   <script src="js/app.js"></script>
+  <script>
+  const menuBtn = document.getElementById("menuBtn");
+  const overlay = document.getElementById("overlay");
+
+  menuBtn?.addEventListener("click", () => {
+    document.body.classList.toggle("drawer-open");
+  });
+
+  overlay?.addEventListener("click", () => {
+    document.body.classList.remove("drawer-open");
+  });
+</script>
+
 </body>
 </html>
+
 
