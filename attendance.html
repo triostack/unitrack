@@ -199,7 +199,19 @@
     periodPick.addEventListener("change", render);
 
     render();
+    const menuBtn = document.getElementById("menuBtn");
+const overlay = document.getElementById("overlay");
+
+menuBtn?.addEventListener("click", () => {
+  document.body.classList.toggle("drawer-open");
+});
+
+overlay?.addEventListener("click", () => {
+  document.body.classList.remove("drawer-open");
+});
+
   </script>
 </body>
 </html>
+
 
