@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Students • UniTrack</title>
+  <link rel="stylesheet" href="./css/theme.css">
+  <link rel="stylesheet" href="./css/ui.css">
+  <link rel="stylesheet" href="./css/pages.css">
+</head>
+<body>
+  <div class="app-shell">
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo">UT</div>
+        <div>
+          <div class="title">UniTrack</div>
+          <div class="muted small" id="userRole">OFFLINE</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-item" href="dashboard.html">🏠 Dashboard</a>
+        <a class="nav-item active" href="students.html">👨‍🎓 Students</a>
+        <a class="nav-item" href="attendance.html">✅ Attendance</a>
+        <a class="nav-item" href="settings.html">⚙️ Settings</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn ghost full" id="backupBtn">Backup</button>
+        <input type="file" id="restoreFile" hidden accept=".json"/>
+        <button class="btn ghost full" id="restoreBtn" style="margin-top:10px;">Restore</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div>
+          <h2 style="margin:0;">Student Management</h2>
+          <p class="muted" style="margin:6px 0 0;">Add, search, filter, bulk upload & profile</p>
+        </div>
+
+        <div class="header-actions">
+          <button class="chip" id="themeToggle">🌙 Theme</button>
+        </div>
+      </header>
+
+      <section class="card" style="margin-top:16px;">
+        <div class="card-title">Quick Actions</div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <button class="btn primary" id="autoRollBtn">Auto Roll Sort</button>
+          <label class="btn" style="cursor:pointer;">
+            Bulk Upload CSV
+            <input type="file" id="csvFile" hidden accept=".csv">
+          </label>
+        </div>
+
+        <p class="muted small" style="margin-top:10px;">
+          CSV columns: name,regNo,phone,parentPhone,semester
+        </p>
+      </section>
+
+      <section class="card" style="margin-top:16px;">
+        <div class="card-title">Add Student</div>
+
+        <form id="addStudentForm" class="form" style="margin-top:12px;">
+          <div class="field">
+            <label>Student Name</label>
+            <input id="s_name" required placeholder="Enter full name">
+          </div>
+
+          <div class="field">
+            <label>Register No</label>
+            <input id="s_reg" required placeholder="e.g. UOC2023XXXX">
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field">
+              <label>Phone</label>
+              <input id="s_phone" placeholder="Student phone">
+            </div>
+            <div class="field">
+              <label>Parent Phone</label>
+              <input id="s_pphone" placeholder="Parent phone">
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="field">
+              <label>Semester</label>
+              <input id="s_sem" type="number" min="1" max="8" value="4" required>
+            </div>
+            <div class="field">
+              <label>Roll No (auto)</label>
+              <input id="s_roll" type="number" value="0" disabled>
+            </div>
+          </div>
+
+          <button class="btn primary full" type="submit">Add Student ✅</button>
+        </form>
+
+        <div id="toast" class="toast"></div>
+      </section>
+
+      <section class="card" style="margin-top:16px;">
+        <div class="card-title">Students List</div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <input id="search" placeholder="Search name / reg no..." style="flex:1;min-width:220px;">
+          <button class="btn" id="refreshBtn">Refresh</button>
+        </div>
+
+        <div id="studentsList" class="list" style="margin-top:12px;"></div>
+      </section>
+    </main>
+
+  </div>
+
+  <script src="./js/utils.js"></script>
+  <script type="module">
+    import { loadDB, addStudent, getStudentsByClass, autoRollSort, exportBackupJSON, restoreBackupJSON, addLog } from "./js/storage.js";
+
+    initTheme();
+
+    const CLASS_ID = "cls_cse_s4_a";
+
+    const listEl = document.getElementById("studentsList");
+    const searchEl = document.getElementById("search");
+
+    function render() {
+      const db = loadDB();
+      document.getElementById("userRole").textContent = "OFFLINE MODE";
+
+      let students = getStudentsByClass(CLASS_ID);
+
+      const q = (searchEl.value || "").trim().toLowerCase();
+      if (q) {
+        students = students.filter(s =>
+          s.name.toLowerCase().includes(q) ||
+          (s.regNo || "").toLowerCase().includes(q)
+        );
+      }
+
+      listEl.innerHTML = students.length
+        ? students.map(s => `
+            <div class="list-item">
+              <div style="display:flex;justify-content:space-between;gap:10px;">
+                <div>
+                  <div style="font-weight:700;">${s.rollNo}. ${s.name}</div>
+                  <div class="muted small">Reg: ${s.regNo} • Sem: ${s.semester}</div>
+                </div>
+                <div class="muted small" style="white-space:nowrap;">
+                  ${s.phone || "-"}
+                </div>
+              </div>
+            </div>
+          `).join("")
+        : `<div class="muted small" style="margin-top:10px;">No students yet.</div>`;
+    }
+
+    document.getElementById("addStudentForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const db = loadDB();
+      const existing = getStudentsByClass(CLASS_ID);
+      const nextRoll = existing.length ? existing[existing.length - 1].rollNo + 1 : 1;
+
+      addStudent({
+        name: document.getElementById("s_name").value.trim(),
+        regNo: document.getElementById("s_reg").value.trim(),
+        rollNo: nextRoll,
+        phone: document.getElementById("s_phone").value.trim(),
+        parentPhone: document.getElementById("s_pphone").value.trim(),
+        semester: Number(document.getElementById("s_sem").value),
+        deptId: "dept_cse",
+        classId: CLASS_ID,
+        photo: ""
+      });
+
+      toast("Student added ✅");
+      e.target.reset();
+      render();
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", render);
+    searchEl.addEventListener("input", render);
+
+    document.getElementById("autoRollBtn").addEventListener("click", () => {
+      autoRollSort(CLASS_ID);
+      toast("Auto Roll Sorting Done ✅");
+      render();
+    });
+
+    // Backup / Restore
+    document.getElementById("backupBtn").addEventListener("click", () => {
+      exportBackupJSON();
+      toast("Backup downloaded ✅");
+    });
+
+    document.getElementById("restoreBtn").addEventListener("click", () => {
+      document.getElementById("restoreFile").click();
+    });
+
+    document.getElementById("restoreFile").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        await restoreBackupJSON(file);
+        toast("Restore success ✅");
+        setTimeout(() => location.reload(), 600);
+      } catch {
+        toast("Invalid backup file ❌");
+      }
+    });
+
+    // Bulk CSV (basic)
+    document.getElementById("csvFile").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(Boolean);
+
+      // skip header if present
+      const startIndex = lines[0].toLowerCase().includes("name") ? 1 : 0;
+
+      let added = 0;
+      for (let i = startIndex; i < lines.length; i++) {
+        const [name, regNo, phone, parentPhone, semester] = lines[i].split(",").map(x => (x || "").trim());
+        if (!name || !regNo) continue;
+
+        const current = getStudentsByClass(CLASS_ID);
+        const nextRoll = current.length ? current[current.length - 1].rollNo + 1 : 1;
+
+        addStudent({
+          name,
+          regNo,
+          rollNo: nextRoll,
+          phone,
+          parentPhone,
+          semester: Number(semester || 4),
+          deptId: "dept_cse",
+          classId: CLASS_ID,
+          photo: ""
+        });
+        added++;
+      }
+
+      addLog(`Bulk uploaded ${added} students via CSV`);
+      toast(`Bulk upload done ✅ Added: ${added}`);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

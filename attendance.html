@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Attendance • UniTrack</title>
+  <link rel="stylesheet" href="./css/theme.css">
+  <link rel="stylesheet" href="./css/ui.css">
+  <link rel="stylesheet" href="./css/pages.css">
+</head>
+<body>
+  <div class="app-shell">
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo">UT</div>
+        <div>
+          <div class="title">UniTrack</div>
+          <div class="muted small">5 Periods / Day</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-item" href="dashboard.html">🏠 Dashboard</a>
+        <a class="nav-item" href="students.html">👨‍🎓 Students</a>
+        <a class="nav-item active" href="attendance.html">✅ Attendance</a>
+        <a class="nav-item" href="settings.html">⚙️ Settings</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div>
+          <h2 style="margin:0;">Attendance</h2>
+          <p class="muted" style="margin:6px 0 0;">One-tap marking • Period-wise</p>
+        </div>
+
+        <div class="header-actions">
+          <button class="chip" id="themeToggle">🌙 Theme</button>
+        </div>
+      </header>
+
+      <section class="card" style="margin-top:16px;">
+        <div class="card-title">Controls</div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <input id="datePick" type="date">
+          <select id="periodPick">
+            <option value="1">Period 1</option>
+            <option value="2">Period 2</option>
+            <option value="3">Period 3</option>
+            <option value="4">Period 4</option>
+            <option value="5">Period 5</option>
+          </select>
+
+          <button class="btn" id="allP">Mark All Present ✅</button>
+          <button class="btn" id="allA">Mark All Absent ❌</button>
+          <button class="btn primary" id="saveBtn">Save ✅</button>
+        </div>
+
+        <p class="muted small" style="margin-top:10px;">
+          Tap student to cycle: Present ✅ → Absent ❌ → Late ⏳ → On Duty 🟡
+        </p>
+      </section>
+
+      <section class="card" style="margin-top:16px;">
+        <div class="card-title">Student List</div>
+        <div id="list" class="list" style="margin-top:12px;"></div>
+        <div id="toast" class="toast"></div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="./js/utils.js"></script>
+  <script type="module">
+    import { loadDB, saveDB, getStudentsByClass, addLog } from "./js/storage.js";
+    initTheme();
+
+    const CLASS_ID = "cls_cse_s4_a";
+    const list = document.getElementById("list");
+
+    const datePick = document.getElementById("datePick");
+    const periodPick = document.getElementById("periodPick");
+
+    const today = new Date().toISOString().slice(0,10);
+    datePick.value = today;
+
+    const statusCycle = ["P", "A", "L", "OD"];
+    const emoji = { P:"✅ Present", A:"❌ Absent", L:"⏳ Late", OD:"🟡 On Duty" };
+
+    function keyOf(date, period) {
+      return `${date}_${CLASS_ID}_${period}`;
+    }
+
+    function getAttendanceDoc(db, date, period) {
+      const existing = db.attendance.find(a => a.date === date && a.classId === CLASS_ID && String(a.period) === String(period));
+      if (existing) return existing;
+
+      const doc = {
+        date,
+        classId: CLASS_ID,
+        period: String(period),
+        subject: "",
+        locked: false,
+        updatedAt: new Date().toISOString(),
+        records: {}
+      };
+      db.attendance.push(doc);
+      return doc;
+    }
+
+    function render() {
+      const db = loadDB();
+      const students = getStudentsByClass(CLASS_ID);
+
+      const date = datePick.value;
+      const period = periodPick.value;
+
+      const att = getAttendanceDoc(db, date, period);
+
+      list.innerHTML = students.map(s => {
+        const st = att.records[s.id] || "P";
+        return `
+          <div class="list-item" data-id="${s.id}">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+              <div>
+                <div style="font-weight:800;">${s.rollNo}. ${s.name}</div>
+                <div class="muted small">${s.regNo}</div>
+              </div>
+              <div style="font-weight:800;">${emoji[st]}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      saveDB(db);
+    }
+
+    list.addEventListener("click", (e) => {
+      const item = e.target.closest(".list-item");
+      if (!item) return;
+
+      const id = item.dataset.id;
+
+      const db = loadDB();
+      const date = datePick.value;
+      const period = periodPick.value;
+      const att = getAttendanceDoc(db, date, period);
+
+      const current = att.records[id] || "P";
+      const idx = statusCycle.indexOf(current);
+      const next = statusCycle[(idx + 1) % statusCycle.length];
+
+      att.records[id] = next;
+      att.updatedAt = new Date().toISOString();
+      saveDB(db);
+
+      render();
+    });
+
+    document.getElementById("allP").addEventListener("click", () => {
+      const db = loadDB();
+      const students = getStudentsByClass(CLASS_ID);
+      const att = getAttendanceDoc(db, datePick.value, periodPick.value);
+      students.forEach(s => att.records[s.id] = "P");
+      saveDB(db);
+      toast("Marked all present ✅");
+      render();
+    });
+
+    document.getElementById("allA").addEventListener("click", () => {
+      const db = loadDB();
+      const students = getStudentsByClass(CLASS_ID);
+      const att = getAttendanceDoc(db, datePick.value, periodPick.value);
+      students.forEach(s => att.records[s.id] = "A");
+      saveDB(db);
+      toast("Marked all absent ❌");
+      render();
+    });
+
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      addLog(`Saved attendance for ${datePick.value} Period ${periodPick.value}`);
+      toast("Attendance saved ✅");
+    });
+
+    datePick.addEventListener("change", render);
+    periodPick.addEventListener("change", render);
+
+    render();
+  </script>
+</body>
+</html>

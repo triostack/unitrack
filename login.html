@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Login • UniTrack</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/ui.css">
+
+</head>
+<body>
+  <div class="center-screen">
+    <div class="glass-card" style="max-width:520px;">
+      <div class="topbar">
+        <div>
+          <h1 class="brand-title" style="margin:0;">UniTrack</h1>
+          <p class="muted" style="margin-top:6px;">Admin / Teacher Secure Login</p>
+        </div>
+
+        <button class="chip" id="themeToggle">🌙 Theme</button>
+      </div>
+
+      <form id="loginForm" class="form">
+        <div class="field">
+          <label>Email</label>
+          <input id="email" type="email" placeholder="teacher@college.com" required />
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <input id="password" type="password" placeholder="••••••••" required />
+        </div>
+
+        <button class="btn primary full" type="submit">Login</button>
+
+        <div class="helper muted">
+          Demo: admin@unitrack.com / 123456 <br/>
+          Demo: teacher@unitrack.com / 123456
+        </div>
+      </form>
+
+      <div id="toast" class="toast"></div>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

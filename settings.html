@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Settings • UniTrack</title>
+  <link rel="stylesheet" href="./css/theme.css">
+  <link rel="stylesheet" href="./css/ui.css">
+  <link rel="stylesheet" href="./css/pages.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo">UT</div>
+        <div>
+          <div class="title">UniTrack</div>
+          <div class="muted small">Settings</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-item" href="dashboard.html">🏠 Dashboard</a>
+        <a class="nav-item" href="students.html">👨‍🎓 Students</a>
+        <a class="nav-item" href="attendance.html">✅ Attendance</a>
+        <a class="nav-item active" href="settings.html">⚙️ Settings</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div>
+          <h2 style="margin:0;">Settings</h2>
+          <p class="muted" style="margin:6px 0 0;">Offline Backup • Restore • Theme</p>
+        </div>
+
+        <div class="header-actions">
+          <button class="chip" id="themeToggle">🌙 Theme</button>
+        </div>
+      </header>
+
+      <section class="card" style="margin-top:16px;">
+        <div class="card-title">Offline Backup</div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+          <button class="btn primary" id="backupBtn">Download Backup JSON</button>
+          <input type="file" id="restoreFile" hidden accept=".json"/>
+          <button class="btn" id="restoreBtn">Restore Backup JSON</button>
+        </div>
+
+        <div id="toast" class="toast"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./js/utils.js"></script>
+  <script type="module">
+    import { exportBackupJSON, restoreBackupJSON } from "./js/storage.js";
+    initTheme();
+
+    document.getElementById("backupBtn").addEventListener("click", () => {
+      exportBackupJSON();
+      toast("Backup downloaded ✅");
+    });
+
+    document.getElementById("restoreBtn").addEventListener("click", () => {
+      document.getElementById("restoreFile").click();
+    });
+
+    document.getElementById("restoreFile").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        await restoreBackupJSON(file);
+        toast("Restore success ✅");
+        setTimeout(() => location.reload(), 700);
+      } catch {
+        toast("Invalid backup file ❌");
+      }
+    });
+  </script>
+</body>
+</html>
